@@ -10,13 +10,23 @@
         /* Custom styles for vibrant background and layout */
         body {
             font-family: 'Inter', sans-serif;
-            background: linear-gradient(135deg, #1f2937, #374151); /* Dark, stylish gradient background */
             min-height: 100vh;
             color: #ffffff;
+            
+            /* --- NEW: Full-screen background image for Home View --- */
+            background-image: url('https://placehold.co/1920x1080/1f2937/ffffff?text=FITNESS+MOMENTUM+START+NOW');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            /* -------------------------------------------------------- */
         }
-        .main-content {
-            min-height: calc(100vh - 80px); /* Account for padding/header */
+        
+        /* NEW: Dark overlay for all views *except* the home screen, ensuring text legibility over the background image */
+        .content-overlay {
+            background: rgba(31, 41, 55, 0.95); /* Dark semi-transparent background */
+            min-height: 100vh;
         }
+
         .muscle-svg path:hover {
             fill: #facc15; /* Yellow on hover */
             cursor: pointer;
@@ -39,11 +49,20 @@
             overflow-y: auto;
             max-height: calc(100vh - 200px); /* Adjust max height for content scrolling */
         }
+        
+        /* Custom Animation for the new button's outer layer */
+        @keyframes pulse-slow {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.05); }
+        }
+        .animate-pulse-slow {
+            animation: pulse-slow 3s infinite ease-in-out;
+        }
     </style>
 </head>
 <body>
 
-    <div id="app" class="p-4 md:p-8">
+    <div id="app">
         <!-- Content will be rendered here by JavaScript -->
     </div>
 
@@ -55,9 +74,15 @@
         let timeLeft = totalQuizTime;
         const appElement = document.getElementById('app');
 
-        // NEW: Authentication State (Mock)
+        // Authentication State (Mock)
         let isLoggedIn = false;
         let username = '';
+        
+        // --- Gemini API State ---
+        let isGeneratingRecipe = false;
+        let recipeQuery = '';
+        let recipeResult = { text: '', sources: [] }; // Stores the generated recipe and its sources
+
 
         // --- 2. Data Definitions (Muscles, Quiz, Nutrition) ---
 
@@ -155,6 +180,7 @@
             appElement.innerHTML = '';
             
             if (currentView === 'home') {
+                // Home screen uses the body background
                 appElement.innerHTML = renderHome();
             } else {
                 // Global Header with Login/Profile Button
@@ -174,25 +200,38 @@
                         ${headerButton}
                     </div>
                 `;
-
-                appElement.innerHTML = globalHeader + renderNavBar() + '<div class="main-content">' + renderCurrentView() + '</div>';
+                
+                // Content for all other pages is wrapped in a dark overlay
+                appElement.innerHTML = globalHeader + renderNavBar() + '<div class="content-overlay p-4 md:p-8 pt-0">' + renderCurrentView() + '</div>';
             }
         }
 
-        // Home View
+        // Home View (UPDATED: Removed embedded image, relies on full-screen background)
         function renderHome() {
             return `
-                <div class="flex flex-col items-center justify-center min-h-screen text-center">
-                    <div class="p-10 md:p-16 bg-white bg-opacity-10 rounded-3xl shadow-2xl backdrop-blur-sm transform hover:scale-[1.02] transition duration-500 ease-in-out border-4 border-indigo-400">
-                        <h1 class="text-6xl md:text-8xl font-black text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-pink-500 mb-4">
+                <div class="flex flex-col items-center justify-center min-h-screen text-center p-4">
+                    <div class="p-8 md:p-12 bg-white bg-opacity-10 rounded-3xl shadow-2xl backdrop-blur-sm transform hover:scale-[1.01] transition duration-500 ease-in-out border-4 border-indigo-400 max-w-lg w-full">
+                        
+                        <!-- Removed small fitness image here, as the body now has a full-screen background image -->
+
+                        <h1 class="text-5xl md:text-7xl font-black text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-pink-500 mb-2">
                             FitQuest
                         </h1>
-                        <p class="text-2xl text-gray-200 mb-10 font-light italic">
-                            Conquer Your Fitness Journey
+                        <p class="text-xl text-gray-200 mb-10 font-light italic">
+                            Your Daily Blueprint for Strength & Nutrition.
                         </p>
-                        <button onclick="navigateTo('muscles')" class="start-button px-10 py-4 bg-pink-500 hover:bg-pink-600 text-white font-bold text-xl rounded-full shadow-lg transform hover:scale-105 transition duration-300 ease-in-out ring-4 ring-pink-300 ring-opacity-50">
-                            START YOUR QUEST
+                        
+                        <!-- Double Shape CTA Button -->
+                        <button onclick="navigateTo('muscles')" 
+                                class="relative z-10 p-1.5 rounded-2xl bg-indigo-600 hover:bg-indigo-700 transition duration-300 shadow-xl group">
+                            <!-- Outer/First shape: Pulsing Border -->
+                            <span class="absolute inset-0 rounded-2xl border-4 border-pink-400 group-hover:border-pink-300 transition duration-300 animate-pulse-slow"></span>
+                            <!-- Inner/Second shape: Text Holder -->
+                            <span class="relative z-20 block px-12 py-4 bg-pink-500 text-white font-black text-xl rounded-xl transform group-hover:scale-105 transition duration-300">
+                                START YOUR QUEST
+                            </span>
                         </button>
+
                     </div>
                 </div>
             `;
@@ -221,8 +260,9 @@
                 </div>
             `).join('');
 
+            // Note: Updated the sticky positioning to top-0 for better alignment within the new content-overlay structure
             return `
-                <nav class="sticky top-16 md:top-20 z-10 bg-gray-800 bg-opacity-90 backdrop-blur-md shadow-xl rounded-xl mb-6">
+                <nav class="sticky top-0 z-10 bg-gray-800 bg-opacity-90 backdrop-blur-md shadow-xl rounded-b-xl mb-6">
                     <div class="flex justify-between items-center text-white">
                         <div class="flex flex-1 overflow-x-auto whitespace-nowrap">
                             ${navItems}
@@ -326,7 +366,7 @@
                         ${optionCards}
                     </div>
                     
-                    <!-- LOGOUT BUTTON ADDED HERE -->
+                    <!-- LOGOUT BUTTON -->
                     <button onclick="handleLogout()" class="mt-10 w-full md:w-auto px-6 py-3 bg-red-600 text-white font-bold rounded-lg shadow-xl hover:bg-red-700 transition duration-150 transform hover:scale-[1.01] text-lg">
                         Log Out 👋
                     </button>
@@ -421,9 +461,9 @@
         
         function renderFriendsLeaderboard() {
             const mockFriends = [
-                { name: "Anugrah ", score: 5500, rank: 1 },
+                { name: "Anugarh B", score: 5500, rank: 1 },
                 { name: username, score: 5120, rank: 'You' },
-                { name: "Shivang", score: 4890, rank: 3 },
+                { name: "Shivang S", score: 4890, rank: 3 },
                 { name: "Aiman P", score: 4500, rank: 4 },
                 { name: "Binshad", score: 4000, rank: 5 },
             ];
@@ -526,10 +566,87 @@
         }
         
         function renderNutrition() {
+            // Attach input change listener
+            setTimeout(() => {
+                const input = document.getElementById('recipe-query-input');
+                if (input) {
+                    input.value = recipeQuery; // Restore previous query
+                    input.addEventListener('input', (e) => {
+                        recipeQuery = e.target.value;
+                    });
+                }
+            }, 0);
+
+            // Function to render the generated recipe results
+            const renderRecipeResult = () => {
+                if (isGeneratingRecipe) {
+                    return `
+                        <div class="flex items-center justify-center p-8 bg-gray-700 rounded-xl">
+                            <svg class="animate-spin -ml-1 mr-3 h-6 w-6 text-pink-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            <span class="text-pink-400 font-semibold">Generating your custom recipe...</span>
+                        </div>
+                    `;
+                }
+                
+                if (recipeResult.text) {
+                    let sourceHtml = '';
+                    if (recipeResult.sources.length > 0) {
+                        sourceHtml = `
+                            <h4 class="text-lg font-bold text-yellow-300 mt-4 border-t border-gray-700 pt-3">Sources:</h4>
+                            <ul class="list-disc list-inside text-sm text-gray-400 mt-2">
+                                ${recipeResult.sources.map(s => 
+                                    `<li><a href="${s.uri}" target="_blank" class="hover:text-yellow-400 break-words">${s.title}</a></li>`
+                                ).join('')}
+                            </ul>
+                        `;
+                    }
+
+                    return `
+                        <div class="bg-indigo-900 bg-opacity-30 p-6 rounded-xl shadow-2xl border-l-4 border-indigo-400 whitespace-pre-wrap">
+                            <h3 class="text-2xl font-bold text-pink-400 mb-3">Generated Recipe:</h3>
+                            <p class="text-gray-200">${recipeResult.text}</p>
+                            ${sourceHtml}
+                        </div>
+                    `;
+                }
+
+                return `<div class="p-4 text-center text-gray-500 italic">No recipe generated yet. Enter a query above!</div>`;
+            };
+
+
             return `
                 <div class="max-w-5xl mx-auto">
                     <h2 class="text-3xl font-extrabold text-indigo-400 mb-6">🍎 Nutrition & Protein Guide</h2>
-                    <p class="text-gray-300 mb-8">Essential nutrients and protein sources for every diet.</p>
+                    <p class="text-gray-300 mb-8">Essential nutrients, protein sources, and a powerful **Recipe Generator** below!</p>
+
+                    <!-- --- NEW: GEMINI RECIPE GENERATOR FEATURE --- -->
+                    <div class="bg-gray-800 p-6 rounded-2xl shadow-2xl border-4 border-pink-500 mb-8">
+                        <h3 class="text-2xl font-black text-pink-300 mb-4 flex items-center">
+                            ✨ Custom Recipe Generator (AI Powered)
+                        </h3>
+                        <p class="text-gray-400 mb-4">
+                            Tell us what you have, or what your goals are (e.g., "high protein dinner with chicken and rice" or "vegan quick-lunch").
+                        </p>
+                        
+                        <div class="flex flex-col md:flex-row space-y-3 md:space-y-0 md:space-x-3 mb-6">
+                            <input type="text" id="recipe-query-input" placeholder="Your ingredients, diet, or goal..."
+                                   class="flex-grow p-3 rounded-lg bg-gray-700 text-white border-2 border-pink-500 focus:ring-pink-400 focus:border-pink-400" 
+                                   value="${recipeQuery || ''}" 
+                                   onchange="window.recipeQuery = this.value;">
+                            <button onclick="generateRecipe()" 
+                                    class="w-full md:w-auto p-3 bg-indigo-500 text-white font-bold rounded-lg hover:bg-indigo-600 transition duration-150 transform hover:scale-[1.01] disabled:opacity-50"
+                                    ${isGeneratingRecipe ? 'disabled' : ''}>
+                                ${isGeneratingRecipe ? 'Generating...' : '✨ Generate Recipe'}
+                            </button>
+                        </div>
+                        
+                        <!-- Recipe Result Area -->
+                        ${renderRecipeResult()}
+                    </div>
+                    <!-- --- END GEMINI FEATURE --- -->
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                         <!-- Vegetarian Section -->
@@ -723,8 +840,6 @@
                     <p class="text-gray-300 mb-6">Connect with fellow fitness enthusiasts (Anime PFP style!) and share your quest updates.</p>
                     
                     <div class="space-y-4 scroll-y">
-                        ${postList}
-                        <!-- Mock Post Input -->
                         <div class="bg-gray-800 p-4 rounded-xl shadow-inner">
                             <textarea placeholder="Share your fitness achievement or ask a question..." 
                                       class="w-full p-3 rounded-lg bg-gray-600 text-white border-none focus:ring-teal-400 focus:border-teal-400 resize-none" rows="3"></textarea>
@@ -732,6 +847,7 @@
                                 Post to Community
                             </button>
                         </div>
+                        ${postList}
                     </div>
                     
                     ${getBackButton()}
@@ -740,11 +856,12 @@
         }
         
         function renderAbout() {
+            // UPDATED: Added image path for all developers. Only shivang.jpg has been uploaded so far.
             const devList = [
-                { name: "Aiman P", role: "Project Manager" }, 
-                { name: "Anugrah B Das", role: "Design Lead" }, 
-                { name: "Shivang Sharma", role: "Frontend Architect" }, 
-                { name: "Binshad", role: "Backend/Data Specialist" }
+                { name: "Aiman P", role: "Project Manager", img: "images/aiman.jpg" }, 
+                { name: "Anugarh B Das", role: "Design Lead", img: "images/anu.jpg" }, 
+                { name: "Shivang Sharma", role: "Frontend Architect", img: "images/shivang.jpg" }, 
+                { name: "Binshad", role: "Backend/Data Specialist", img: "images/binshad.jpg" }
             ];
 
             return `
@@ -759,15 +876,26 @@
                         <h3 class="text-2xl font-bold text-pink-400 border-b border-gray-700 pb-2">Meet the Quest Team</h3>
                         
                         <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-                            ${devList.map(dev => `
+                            ${devList.map(dev => {
+                                // Logic to determine the image source, preferring the file path if provided
+                                const imageSrc = dev.img 
+                                    ? dev.img 
+                                    : placeholderImageUrl(100, 100, dev.name.split(' ')[0], '6366f1', 'ffffff');
+                                
+                                // Fallback image URL in case the file path fails to load
+                                const fallbackSrc = placeholderImageUrl(100, 100, dev.name.split(' ')[0], '6366f1', 'ffffff');
+                                
+                                return `
                                 <div class="p-3 bg-gray-700 rounded-lg shadow-md hover:bg-gray-600 transition">
-                                    <img src="${placeholderImageUrl(100, 100, dev.name.split(' ')[0], '6366f1', 'ffffff')}" 
+                                    <img src="${imageSrc}" 
+                                         onerror="this.onerror=null;this.src='${fallbackSrc}'"
                                          alt="${dev.name} profile" 
                                          class="w-20 h-20 mx-auto rounded-full mb-3 object-cover border-2 border-indigo-500">
                                     <p class="font-semibold text-white">${dev.name.split(' ')[0]}</p>
                                     <p class="text-xs text-gray-400">${dev.role}</p>
                                 </div>
-                            `).join('')}
+                                `;
+                            }).join('')}
                         </div>
                         
                         <div class="p-4 bg-yellow-900 bg-opacity-30 rounded-lg text-sm text-yellow-300 italic">
@@ -781,13 +909,112 @@
         }
 
 
-        // --- 7. Initialization ---
+        // --- 7. Gemini API Integration Functions ---
+        
+        const apiKey = "";
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+
+        // Utility function for making API calls with exponential backoff
+        async function callGeminiAPI(payload, retries = 3) {
+            for (let i = 0; i < retries; i++) {
+                try {
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (!response.ok) {
+                        if (response.status === 429 && i < retries - 1) { // Rate limit handling
+                            const delay = Math.pow(2, i) * 1000 + Math.random() * 1000;
+                            await new Promise(resolve => setTimeout(resolve, delay));
+                            continue;
+                        }
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+
+                    const result = await response.json();
+                    
+                    const candidate = result.candidates?.[0];
+                    if (!candidate || !candidate.content?.parts?.[0]?.text) {
+                        throw new Error('Invalid response structure from API.');
+                    }
+                    
+                    const text = candidate.content.parts[0].text;
+                    let sources = [];
+                    const groundingMetadata = candidate.groundingMetadata;
+
+                    if (groundingMetadata && groundingMetadata.groundingAttributions) {
+                        sources = groundingMetadata.groundingAttributions
+                            .map(attribution => ({
+                                uri: attribution.web?.uri,
+                                title: attribution.web?.title,
+                            }))
+                            .filter(source => source.uri && source.title);
+                    }
+
+                    return { text, sources };
+
+                } catch (error) {
+                    console.error("Gemini API call failed:", error);
+                    if (i === retries - 1) throw error;
+                    // Exponential backoff logic is handled at the top of the loop
+                }
+            }
+        }
+
+        /**
+         * Generates a recipe based on the user's query using Gemini with Google Search grounding.
+         */
+        async function generateRecipe() {
+            if (isGeneratingRecipe || !recipeQuery.trim()) {
+                console.log("Already generating or query is empty.");
+                return;
+            }
+
+            isGeneratingRecipe = true;
+            recipeResult = { text: '', sources: [] };
+            renderApp(); // Show loading state
+
+            const systemPrompt = `You are a world-class fitness and nutrition expert. Based on the user's query, find a healthy recipe and present it clearly. The recipe MUST include: Recipe Name, Ingredients (formatted as a list), and Instructions (formatted as a list). Do not include any conversational filler.`;
+            
+            const userQuery = `Generate a complete recipe for a fitness meal based on this request: "${recipeQuery}". Focus on health, protein content, and ease of preparation.`;
+            
+            const payload = {
+                contents: [{ parts: [{ text: userQuery }] }],
+                tools: [{ "google_search": {} }],
+                systemInstruction: {
+                    parts: [{ text: systemPrompt }]
+                },
+            };
+
+            try {
+                const result = await callGeminiAPI(payload);
+                recipeResult = result;
+
+            } catch (error) {
+                console.error("Failed to generate recipe:", error);
+                recipeResult = { 
+                    text: "Sorry, I couldn't generate a recipe right now. Please check your query and try again later.", 
+                    sources: [] 
+                };
+            } finally {
+                isGeneratingRecipe = false;
+                renderApp(); // Re-render with results/error
+            }
+        }
+
+        // --- 8. Initialization ---
         window.navigateTo = navigateTo; // Expose to global scope for HTML inline handlers
         window.handleLogin = handleLogin;
         window.handleLogout = handleLogout; // Expose the new logout handler
+        window.generateRecipe = generateRecipe; // Expose the new Gemini feature
+        window.recipeQuery = recipeQuery; // Expose for input change handling
+        
         window.addEventListener('load', renderApp);
 
     </script>
 
 </body>
 </html>
+
