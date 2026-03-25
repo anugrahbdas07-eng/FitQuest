@@ -10,7 +10,12 @@
 🔗https://fitquest-khaki.vercel.app/
 
 ## 📸 Project Preview
-*(Note: Replace this text with a screenshot of your beautiful FitQuest website! Just drag and drop an image file right into the GitHub editor to upload it.)*
+
+**FitQuest** is designed to be your ultimate digital workout companion. The platform welcomes users with a bold, energetic interface that makes tracking daily exercises and wellness goals completely intuitive. From dynamic layouts to high-contrast visuals, every element is built to keep you motivated and focused on your health journey!
+
+<div align="center">
+  <!-- DELETE THIS LINE AND DRAG & DROP YOUR SCREENSHOT HERE -->
+</div>
 
 ## ✨ Core Features
 * **Modern UI/UX:** A clean, energetic, and fully responsive design that looks great on both desktop and mobile devices.
