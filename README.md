@@ -14,7 +14,14 @@
 **FitQuest** is designed to be your ultimate digital workout companion. The platform welcomes users with a bold, energetic interface that makes tracking daily exercises and wellness goals completely intuitive. From dynamic layouts to high-contrast visuals, every element is built to keep you motivated and focused on your health journey!
 
 <div align="center">
-  <!-- DELETE THIS LINE AND DRAG & DROP YOUR SCREENSHOT HERE -->
+
+
+
+
+
+
+
+  
 </div>
 
 ## ✨ Core Features
